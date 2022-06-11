@@ -1,6 +1,9 @@
 /*
- * 1. interface 기반의 상수 표현
- * 2. PhoneBook instance는 1개만 생성하도록
+ * Project5
+ *   1. interface 기반의 상수 표현
+ *   2. PhoneBook instance는 1개만 생성하도록
+ * Project6 부터는 기존 코드에 추가 및 변경
+ *   1. Exception 처리하기
  */
 
 package Project5;
@@ -17,6 +20,19 @@ interface INPUT_SELECT
 	int NORMAL = 1, UNIV = 2, COMPANY = 3;
 }
 
+class MenuInputException extends Exception
+{
+	int wrongInput;
+	
+	public MenuInputException(int wrongInput) {
+		super("잘못된 선택이 이뤄졌습니다.");
+		this.wrongInput = wrongInput;
+	}
+	public void showWorngMessage() {
+		System.out.println(this.wrongInput + "에 해당하는 선택은 존재하지 않습니다.");
+	}
+	
+}
 class PhoneInfo{
 	String name;		// 이름
 	String phoneNumber;	// 전화번호
@@ -110,12 +126,17 @@ class PhoneBookManager{
 		return new PhoneCompanyInfo(name, phone, company);		
 	}
 	
-	public void inputData() {
+	public void inputData() throws MenuInputException {
 		System.out.println("데이터 입력을 시작합니다..");
 		System.out.println("1. 일반, 2. 대학, 3. 회사");
 		System.out.print("선택>> ");
+		
 		int inputType = MenuViewer.sc.nextInt();
 		MenuViewer.sc.nextLine();
+		
+		if(inputType > INPUT_SELECT.COMPANY || inputType < INPUT_SELECT.NORMAL)
+			throw new MenuInputException(inputType);
+
 		PhoneInfo info = null;
 		
 		if(inputType == INPUT_SELECT.NORMAL) {
@@ -127,31 +148,26 @@ class PhoneBookManager{
 		else if(inputType == INPUT_SELECT.COMPANY) {
 			info = inputCompany();
 		}
-		else {
-			System.out.println("1 ~ 3 중 하나를 입력하세요.");
-		}
 		
 		memory[cnt++] = info;
 		System.out.println("데이터 입력이 완료되었습니다. \n");
 	}
 	
-	public void searchData() {
+	public void searchData() throws MenuInputException {
 		System.out.println("데이터 검색을 시작합니다..");
 		
 		System.out.print("이름 : ");
 		String name = MenuViewer.sc.nextLine();
 		int idx = search(name);
 		
-		if(idx < 0) {
-			System.out.println("해당하는 데이터가 존재하지 않습니다.");
-		}
-		else {
-			memory[idx].showPhoneInfo();
-			System.out.println("데이터 검색이 완료되었습니다.");
-		}
+		if(idx < 0) 
+			throw new MenuInputException(idx);
+		
+		memory[idx].showPhoneInfo();
+		System.out.println("데이터 검색이 완료되었습니다.");
 	}
 	
-	public void deleteData() {
+	public void deleteData() throws MenuInputException {
 		System.out.println("데이터 삭제를 시작합니다.");
 		
 		System.out.print("이름 : ");
@@ -159,17 +175,15 @@ class PhoneBookManager{
 		
 		int idx = search(name);
 		
-		if(idx < 0) {
-			System.out.println("해당하는 데이터가 존재하지 않습니다.");
+		if(idx < 0) 
+			throw new MenuInputException(idx);
+		
+		for(int i = idx; i < cnt - 1; i++) {
+			memory[i] = memory[i + 1];
 		}
-		else {
-			for(int i = idx; i < cnt - 1; i++) {
-				memory[i] = memory[i + 1];
-			}
-			
-			cnt--;
-			System.out.println("데이터 삭제가 완료되었습니다. \n");
-		}
+		
+		cnt--;
+		System.out.println("데이터 삭제가 완료되었습니다. \n");
 	}
 	private int search(String name) {
 		for(int i=0; i<cnt; i++) {
@@ -196,26 +210,36 @@ class MenuViewer{
 }
 public class project5 {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws MenuInputException {
 		PhoneBookManager manager = PhoneBookManager.createManagerInst();
 		int inputType = 0;
 		
 		while(true) {
-			MenuViewer.showMenu();
-			inputType = MenuViewer.sc.nextInt();
-			MenuViewer.sc.nextLine();
-			
-			if(inputType == INIT_MENU.INPUT) {
-				manager.inputData();
-			}
-			else if(inputType == INIT_MENU.SEARCH) {
-				manager.searchData();
-			}
-			else if(inputType == INIT_MENU.DELETE) {
-				manager.deleteData();
-			}
-			else if(inputType == INIT_MENU.EXIT){
-				System.out.println("프로그램을 종료합니다.");
+
+			try {
+				MenuViewer.showMenu();
+				inputType = MenuViewer.sc.nextInt();
+				MenuViewer.sc.nextLine();
+				
+				if(inputType < INIT_MENU.INPUT || inputType > INIT_MENU.EXIT)
+					throw new MenuInputException(inputType);
+				
+				if(inputType == INIT_MENU.INPUT) {
+					manager.inputData();
+				}
+				else if(inputType == INIT_MENU.SEARCH) {
+					manager.searchData();
+				}
+				else if(inputType == INIT_MENU.DELETE) {
+					manager.deleteData();
+				}
+				else if(inputType == INIT_MENU.EXIT){
+					System.out.println("프로그램을 종료합니다.");
+					return;
+				}				
+			} catch(MenuInputException e){
+				e.showWorngMessage();
+				System.out.println("메뉴 선택을 처음부터 다시 진행합니다.\n");
 			}
 		}
 	}
