@@ -4,10 +4,14 @@
  *   2. PhoneBook instance는 1개만 생성하도록
  * Project6 부터는 기존 코드에 추가 및 변경
  *   1. Exception 처리하기
+ * Project7
+ *   1. HashSet을 이용해 동일이름에 대해 동일 인스턴스로 취급해주기(번호, 학년 등은 상관 없음)
+ *   2. 자료 저장을 set으로 바꿔주기
  */
 
 package Project5;
 
+import java.util.HashSet;
 import java.util.Scanner;
 
 interface INIT_MENU
@@ -20,6 +24,7 @@ interface INPUT_SELECT
 	int NORMAL = 1, UNIV = 2, COMPANY = 3;
 }
 
+// 참고로 제너릭클래스는 exception을 상속받을 수 없다.
 class MenuInputException extends Exception
 {
 	int wrongInput;
@@ -45,6 +50,15 @@ class PhoneInfo{
 	void showPhoneInfo() {
 		System.out.println("Name : "+ this.name);
 		System.out.println("phoneNumber : "+ this.phoneNumber);
+	}
+	
+	public int hashCode() {
+		return name.hashCode();
+	}
+	
+	public boolean equals(Object obj) {
+		if(name.compareTo(((PhoneInfo)obj).name) == 0) return true;
+		return false;
 	}
 }
 
@@ -79,8 +93,7 @@ class PhoneCompanyInfo extends PhoneInfo{
 
 class PhoneBookManager{
 	final int MAX_CNT = 100;
-	PhoneInfo[] memory = new PhoneInfo[MAX_CNT];
-	int cnt = 0;
+	HashSet<PhoneInfo> memory = new HashSet<PhoneInfo>();
 	
 	static PhoneBookManager inst = null;
 	public static PhoneBookManager createManagerInst() {
@@ -149,8 +162,14 @@ class PhoneBookManager{
 			info = inputCompany();
 		}
 		
-		memory[cnt++] = info;
-		System.out.println("데이터 입력이 완료되었습니다. \n");
+		boolean alreadyAdded = memory.add(info);
+		
+		if(alreadyAdded == true) {
+			System.out.println("데이터 입력이 완료되었습니다. \n");
+		}
+		else {
+			System.out.println("이미 저장된 데이터입니다. \n");
+		}
 	}
 	
 	public void searchData() throws MenuInputException {
@@ -158,13 +177,15 @@ class PhoneBookManager{
 		
 		System.out.print("이름 : ");
 		String name = MenuViewer.sc.nextLine();
-		int idx = search(name);
+		PhoneInfo info = search(name);
 		
-		if(idx < 0) 
-			throw new MenuInputException(idx);
-		
-		memory[idx].showPhoneInfo();
-		System.out.println("데이터 검색이 완료되었습니다.");
+		if(info == null) {
+			System.out.println("해당하는 데이터가 존재하지 않습니다.\n");
+		}
+		else {
+			info.showPhoneInfo();
+			System.out.println("데이터 검색이 완료되었습니다.\n");
+		}
 	}
 	
 	public void deleteData() throws MenuInputException {
@@ -173,26 +194,23 @@ class PhoneBookManager{
 		System.out.print("이름 : ");
 		String name = MenuViewer.sc.nextLine();
 		
-		int idx = search(name);
+		PhoneInfo info = search(name);
 		
-		if(idx < 0) 
-			throw new MenuInputException(idx);
-		
-		for(int i = idx; i < cnt - 1; i++) {
-			memory[i] = memory[i + 1];
+		if(info == null) {
+			System.out.println("해당하는 데이터가 존재하지 않습니다.\n");
 		}
-		
-		cnt--;
-		System.out.println("데이터 삭제가 완료되었습니다. \n");
+		else {
+			memory.remove(info);
+			System.out.println("데이터 삭제가 완료되었습니다. \n");
+		}
 	}
-	private int search(String name) {
-		for(int i=0; i<cnt; i++) {
-			if(name.compareTo(memory[i].name) == 0) {
-				return i;
-			}
+	private PhoneInfo search(String name) {
+
+		for(PhoneInfo now: memory) {
+			if(name.equals(now.name)) return now;
 		}
 		
-		return -1;
+		return null;
 	}
 }
 
